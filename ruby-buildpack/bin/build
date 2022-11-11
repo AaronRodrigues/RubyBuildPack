@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+echo "---> Ruby Buildpack"
+
+# 1. GET ARGS
+layersdir=$1
+
+# 2. CREATE THE LAYER DIRECTORY
+rubylayer="$layersdir"/ruby
+mkdir -p "$rubylayer"
+
+# 3. DOWNLOAD RUBY
+echo "---> Downloading and extracting Ruby"
+ruby_url=https://s3-external-1.amazonaws.com/heroku-buildpack-ruby/heroku-18/ruby-2.5.1.tgz
+wget -q -O - "$ruby_url" | tar -xzf - -C "$rubylayer"
+
+# 4. MAKE RUBY AVAILABLE DURING LAUNCH
+echo -e '[types]\nlaunch = true' > "$layersdir/ruby.toml"
+
+# 5. MAKE RUBY AVAILABLE TO THIS SCRIPT
+export PATH="$rubylayer"/bin:$PATH
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH:+${LD_LIBRARY_PATH}:}"$rubylayer/lib"
+
+# 6. INSTALL BUNDLER
+echo "---> Installing bundler"
+gem install bundler --no-ri --no-rdoc
+
+# 7. INSTALL GEMS
+echo "---> Installing gems"
+bundle install
+
